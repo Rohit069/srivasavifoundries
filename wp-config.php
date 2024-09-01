@@ -25,6 +25,9 @@ define( 'DB_NAME', 'printer' );
 /** Database username */
 define( 'DB_USER', 'root' );
 
+
+
+
 /** Database password */
 define( 'DB_PASSWORD', '' );
 
