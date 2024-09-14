@@ -183,3 +183,94 @@ require_once ASTRA_THEME_DIR . 'inc/core/markup/class-astra-markup.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-filters.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-hooks.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-functions.php';
+
+
+// Register Custom Taxonomy for Model Type
+function add_model_type_taxonomy() {
+
+    $labels = array(
+        'name'                       => _x( 'Model Types', 'taxonomy general name', 'textdomain' ),
+        'singular_name'              => _x( 'Model Type', 'taxonomy singular name', 'textdomain' ),
+        'search_items'               => __( 'Search Model Types', 'textdomain' ),
+        'popular_items'              => __( 'Popular Model Types', 'textdomain' ),
+        'all_items'                  => __( 'All Model Types', 'textdomain' ),
+        'parent_item'                => __( 'Parent Model Type', 'textdomain' ),
+        'parent_item_colon'          => __( 'Parent Model Type:', 'textdomain' ),
+        'edit_item'                  => __( 'Edit Model Type', 'textdomain' ),
+        'update_item'                => __( 'Update Model Type', 'textdomain' ),
+        'add_new_item'               => __( 'Add New Model Type', 'textdomain' ),
+        'new_item_name'              => __( 'New Model Type Name', 'textdomain' ),
+        'separate_items_with_commas' => __( 'Separate model types with commas', 'textdomain' ),
+        'add_or_remove_items'        => __( 'Add or remove model types', 'textdomain' ),
+        'choose_from_most_used'      => __( 'Choose from the most used model types', 'textdomain' ),
+        'not_found'                  => __( 'No model types found.', 'textdomain' ),
+        'menu_name'                  => __( 'Model Types', 'textdomain' ),
+    );
+
+    $args = array(
+        'hierarchical'          => true,
+        'labels'                => $labels,
+        'show_ui'               => true,
+        'show_admin_column'     => true,
+        'update_count_callback' => '_update_post_term_count',
+        'query_var'             => true,
+        'rewrite'               => array( 'slug' => 'model-type' ),
+    );
+
+    register_taxonomy( 'model_type', 'product', $args );
+}
+add_action( 'init', 'add_model_type_taxonomy', 0 );
+
+
+
+// Add the Meta Box
+function add_model_name_metabox() {
+    add_meta_box(
+        'model_name_metabox',             // ID of the metabox
+        'Model Name',                     // Title of the metabox
+        'render_model_name_metabox',      // Callback function
+        'product',                        // Post type (product)
+        'normal',                         // Context (normal, side, advanced)
+        'high'                            // Priority (high, low)
+    );
+}
+add_action( 'add_meta_boxes', 'add_model_name_metabox' );
+
+// Render the Meta Box Content
+function render_model_name_metabox($post) {
+    // Add a nonce field so we can check for it later.
+    wp_nonce_field( 'model_name_metabox_nonce', 'model_name_nonce' );
+
+    // Retrieve an existing value from the database.
+    $model_name = get_post_meta( $post->ID, '_model_name', true );
+
+    // Display the form field
+    echo '<label for="model_name">Model Name: </label>';
+    echo '<input type="text" id="model_name" name="model_name" value="' . esc_attr( $model_name ) . '" size="25" />';
+}
+
+// Save the Meta Box Data
+function save_model_name_metabox( $post_id ) {
+    // Check if our nonce is set.
+    if ( ! isset( $_POST['model_name_nonce'] ) ) {
+        return $post_id;
+    }
+    $nonce = $_POST['model_name_nonce'];
+
+    // Verify that the nonce is valid.
+    if ( ! wp_verify_nonce( $nonce, 'model_name_metabox_nonce' ) ) {
+        return $post_id;
+    }
+
+    // Check the user's permissions.
+    if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        return $post_id;
+    }
+
+    // Sanitize user input.
+    $new_value = sanitize_text_field( $_POST['model_name'] );
+
+    // Update the meta field in the database.
+    update_post_meta( $post_id, '_model_name', $new_value );
+}
+add_action( 'save_post', 'save_model_name_metabox' );
